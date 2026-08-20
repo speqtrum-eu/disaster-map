@@ -1,0 +1,94 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "disaster-map"
+version = "1.0.0"
+description = "Multi-stream orthomosaic mapping system for disaster response"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Speqtrum EU", email = "info@speqtrum.eu"}
+]
+keywords = ["orthomosaic", "video", "streaming", "drones", "mapping", "gis"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Emergency Management",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "numpy>=1.24.0",
+    "opencv-python-headless>=4.8.0",
+    "opencv-contrib-python-headless>=4.8.0",
+    "Pillow>=10.0.0",
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "websockets>=12.0",
+    "python-multipart>=0.0.6",
+    "aiofiles>=23.0.0",
+    "aiohttp>=3.8.0",
+    "gdal>=3.8.0",
+    "rasterio>=1.3.0",
+    "pyproj>=3.6.0",
+    "shapely>=2.0.0",
+    "scikit-image>=0.21.0",
+    "scipy>=1.11.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "pyyaml>=6.0.1",
+    "sqlalchemy>=2.0.23",
+    "aiosqlite>=0.19.0",
+    "ffmpeg-python>=0.2.0",
+    "python-dateutil>=2.8.2",
+    "pytz>=2023.3",
+    "httpx>=0.25.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.10.0",
+    "ruff>=0.1.0",
+    "mypy>=1.6.0",
+]
+webrtc = ["aiortc>=1.5.0"]
+gpu = ["cupy-cuda12x>=12.0.0"]
+
+[project.scripts]
+disaster-map = "main:main"
+disaster-map-worker = "workers.stream_processor:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["disaster_map*", "src*", "workers*"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]

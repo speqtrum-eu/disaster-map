@@ -1,0 +1,155 @@
+# Video stream configuration
+# Supports: RTSP, RTMP, WebRTC, HTTP, and file-based streams
+
+streams:
+  # Example drone stream (RTSP)
+  drone_1:
+    enabled: true
+    type: rtsp
+    url: rtsp://192.168.1.100:554/live
+    name: "Drone 1 - Main"
+    gps: true
+    gps_source: embedded  # embedded, external, or manual
+    resolution: [1920, 1080]
+    fps: 30
+    bitrate: 8000
+    
+    # Camera calibration (optional)
+    calibration:
+      fx: 1500.0
+      fy: 1500.0
+      cx: 960.0
+      cy: 540.0
+      distortion: [0.0, 0.0, 0.0, 0.0, 0.0]
+    
+    # Processing settings
+    processing:
+      frame_skip: 1  # Process every Nth frame (1 = all frames)
+      quality: high  # high, medium, low
+      
+    # Geospatial settings
+    geospatial:
+      altitude: 100  # meters, if GPS doesn't provide altitude
+      heading: 0     # degrees, camera heading relative to north
+      tilt: 90       # degrees, camera tilt (90 = looking straight down)
+
+  # Example drone stream (RTMP)
+  drone_2:
+    enabled: false
+    type: rtmp
+    url: rtmp://192.168.1.101/live/stream
+    name: "Drone 2 - Secondary"
+    gps: true
+    gps_source: external
+    external_gps:
+      host: 192.168.1.101
+      port: 10000
+      protocol: udp
+    resolution: [1920, 1080]
+    fps: 30
+
+  # Example body camera (WebRTC)
+  bodycam_1:
+    enabled: false
+    type: webrtc
+    url: webrtc://192.168.1.102:8080
+    name: "Body Cam 1"
+    gps: false
+    resolution: [1280, 720]
+    fps: 24
+    
+    # Body cameras typically have wider FOV
+    calibration:
+      fx: 1000.0
+      fy: 1000.0
+      cx: 640.0
+      cy: 360.0
+      distortion: [0.1, -0.05, 0.0, 0.0, 0.0]
+    
+    geospatial:
+      altitude: 1.8  # meters, typical human height
+      heading: 0
+      tilt: 0        # degrees, looking forward
+
+  # Example HTTP stream (MJPEG)
+  http_stream:
+    enabled: false
+    type: http
+    url: http://192.168.1.103:8080/video.mjpeg
+    name: "HTTP Camera"
+    gps: false
+    resolution: [1280, 720]
+    fps: 15
+
+  # Example file-based stream for testing
+  test_stream:
+    enabled: false
+    type: file
+    path: /data/test_video.mp4
+    name: "Test Video"
+    gps: false
+    resolution: [1920, 1080]
+    fps: 30
+    loop: true
+
+# Global processing settings
+processing:
+  # Orthomosaic generation
+  orthomosaic:
+    tile_size: 256  # pixels
+    overlap: 20     # percent
+    resolution: 0.1  # meters per pixel
+    
+  # Feature matching
+  feature_matching:
+    detector: SIFT   # SIFT, SURF, ORB, AKAZE
+    matcher: FLANN   # FLANN, BFMatcher
+    min_matches: 50
+    ratio_test: 0.75
+    
+  # Stitching
+  stitching:
+    method: homography  # homography, bundle_adjustment
+    confidence_threshold: 0.8
+    reprojection_error: 5.0
+    
+  # Georegistration
+  georegistration:
+    coordinate_system: EPSG:4326  # WGS84
+    target_system: EPSG:3857      # Web Mercator
+    
+  # Time series
+  time_series:
+    interval: 1.0  # seconds between orthomosaic updates
+    retention: 24   # hours of data to keep
+    
+# Storage settings
+storage:
+  tiles:
+    backend: sqlite  # sqlite, s3, filesystem
+    path: data/tiles.db
+    
+  frames:
+    backend: filesystem
+    path: data/frames
+    max_size: 100  # GB
+    
+  thumbnails:
+    backend: filesystem
+    path: data/thumbnails
+    quality: 85
+    
+# Network settings
+network:
+  api_host: 0.0.0.0
+  api_port: 8000
+  ws_host: 0.0.0.0
+  ws_port: 8001
+  cors_origins: ["http://localhost:3000", "http://127.0.0.1:3000"]
+
+# Logging settings
+logging:
+  level: INFO
+  path: logs/disaster_map.log
+  max_size: 100  # MB
+  backup_count: 5

@@ -1,0 +1,53 @@
+{
+  "name": "disaster-map-frontend",
+  "version": "1.0.0",
+  "description": "Web interface for Disaster Map - Multi-Stream Orthomosaic System",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "three": "^0.159.0",
+    "@react-three/fiber": "^8.15.12",
+    "@react-three/drei": "^9.85.0",
+    "@react-three/xr": "^5.7.0",
+    "ol": "^7.3.0",
+    "socket.io-client": "^4.7.2",
+    "axios": "^1.6.2",
+    "zustand": "^4.4.7",
+    "date-fns": "^2.30.0",
+    "recoil": "^0.7.7",
+    "framer-motion": "^10.16.16",
+    "@mui/material": "^5.14.19",
+    "@mui/icons-material": "^5.14.19",
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.10",
+    "eslint": "^8.56.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.5",
+    "@types/three": "^0.159.0",
+    "@types/node": "^20.11.5",
+    "vitest": "^1.1.0",
+    "@testing-library/react": "^14.1.2",
+    "@testing-library/jest-dom": "^6.1.5",
+    "jsdom": "^23.0.1"
+  },
+  "resolutions": {
+    "@types/react": "^18.2.0"
+  }
+}

@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # Backend API Server
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./temp:/app/temp
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    restart: unless-stopped
+    networks:
+      - disaster-map
+
+  # Frontend Web Interface
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8000/api/v1
+      - VITE_WS_URL=ws://localhost:8001
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - disaster-map
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - disaster-map
+
+  # PostgreSQL for time-series data (optional)
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=disaster_map
+      - POSTGRES_PASSWORD=disaster_map
+      - POSTGRES_DB=disaster_map
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - disaster-map
+
+volumes:
+  redis_data:
+  postgres_data:
+
+networks:
+  disaster-map:
+    driver: bridge
