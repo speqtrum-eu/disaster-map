@@ -21,6 +21,9 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     gdal-bin \
     && rm -rf /var/lib/apt/lists/*
 
+# Install numpy first (required by GDAL Python bindings)
+RUN python3.11 -m pip install --no-cache-dir --user numpy>=1.24.0
+
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
 
