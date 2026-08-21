@@ -335,7 +335,7 @@ class OrthomosaicTile:
         return cls(
             id=data.get("id", str(uuid.uuid4())),
             x=data.get("x", 0),
-            "y": data.get("y", 0),
+            y=data.get("y", 0),
             z=data.get("z", 0),
             timestamp=data.get("timestamp", 0.0),
             bounds=tuple(data.get("bounds", [0.0, 0.0, 0.0, 0.0])),
