@@ -1,41 +1,42 @@
 # Dockerfile for Disaster Map Backend
 # Multi-stage build for smaller final image
 
-# Build stage
-FROM python:3.11-slim as builder
+# Use official GDAL image as base to ensure version compatibility
+FROM osgeo/gdal:3.13.3 as builder
 
 WORKDIR /app
 
-# Install build dependencies
+# Install Python and build tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-dev \
     build-essential \
     cmake \
     git \
     wget \
     curl \
-    libgdal-dev \
-    gdal-bin \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN pip3 install --no-cache-dir --user -r requirements.txt
 
 # Runtime stage
-FROM python:3.11-slim
+FROM osgeo/gdal:3.13.3
 
 WORKDIR /app
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
     ffmpeg \
     libsm6 \
     libxext6 \
     libxrender1 \
-    libgdal-dev \
-    gdal-bin \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Python packages from builder
@@ -57,4 +58,4 @@ ENV GDAL_DATA=/usr/share/gdal
 EXPOSE 8000 8001
 
 # Set default command
-CMD ["python", "main.py"]
+CMD ["python3", "main.py"]
