@@ -51,7 +51,7 @@ class TileGenerator:
         tiles = []
         
         for zoom in range(self.max_zoom + 1):
-n            # Calculate scale
+            # Calculate scale
             scale = 1.0 / (2 ** zoom)
             
             # Resize orthomosaic for this zoom level
