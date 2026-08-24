@@ -3,6 +3,13 @@
 // ========== Stream Types ==========
 export type StreamType = 'rtsp' | 'rtmp' | 'webrtc' | 'http' | 'file' | 'udp';
 export type StreamStatus = 'disconnected' | 'connecting' | 'connected' | 'error' | 'processing';
+export const StreamStatus = {
+  DISCONNECTED: 'disconnected',
+  CONNECTING: 'connecting',
+  CONNECTED: 'connected',
+  ERROR: 'error',
+  PROCESSING: 'processing',
+} as const;
 
 export interface StreamConfig {
   id: string;
