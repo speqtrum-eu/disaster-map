@@ -19,16 +19,14 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     curl \
     libgdal-dev \
     gdal-bin \
+    python3-gdal \
     && rm -rf /var/lib/apt/lists/*
-
-# Install numpy first (required by GDAL Python bindings)
-RUN python3.11 -m pip install --no-cache-dir --user numpy>=1.24.0
 
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN python3.11 -m pip install --no-cache-dir --user -r requirements.txt
+# Install Python dependencies (GDAL will be skipped as it's provided by python3-gdal)
+RUN python3.11 -m pip install --no-cache-dir --user --ignore-installed -r requirements.txt
 
 # Runtime stage
 FROM ubuntu:22.04
@@ -46,6 +44,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     libxrender1 \
     libgdal-dev \
     gdal-bin \
+    python3-gdal \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Python packages from builder

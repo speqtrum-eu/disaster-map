@@ -15,7 +15,8 @@ aiofiles>=23.0.0
 aiohttp>=3.8.0
 
 # Geospatial
-gdal==3.10.3
+# GDAL is provided by python3-gdal in Docker; install via pip only for dev environments
+# gdal==3.10.3
 rasterio>=1.3.0
 pyproj>=3.6.0
 shapely>=2.0.0
