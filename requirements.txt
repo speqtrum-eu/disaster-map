@@ -1,0 +1,11 @@
+# Core Dependencies
+numpy
+opencv-python
+torch
+torchvision
+fastapi
+uvicorn
+psycopg2-binary
+ffmpeg-python
+pytest
+gdal

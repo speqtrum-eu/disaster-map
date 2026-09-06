@@ -1,80 +1,35 @@
-# Python
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
 
-# Virtual environments
-.env
-.venv
+# C extensions
+*.so
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Environments
+.venv/
 env/
 venv/
 ENV/
 
-# IDE
-.idea/
+# IDEs
 .vscode/
-*.swp
-*.swo
-*~
+.idea/
 
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-.nox/
-
-# Type checking
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Logs
-*.log
-logs/
-
-# Local data
-*.db
-data/
-temp/
-
-# Frontend
-node_modules/
-frontend/node_modules/
-frontend/dist/
-frontend/.vite/
-frontend/.svelte-kit/
-
-# OS
+# OS files
 .DS_Store
 Thumbs.db
 
-# Environment
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Logs and temporary files
+*.log
+tmp/
+temp/
 
-# Docker
-.docker/
-
-# Cache
-.cache/
+# Data / Large Files (to be added to .gitignore as needed)
+data/
+outputs/

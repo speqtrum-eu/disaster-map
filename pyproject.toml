@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "log-orthomosaic"
+version = "0.1.0"
+description = "Live Orthomosaic Generator (LOG)"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "opencv-python",
+    "torch",
+    "torchvision",
+    "fastapi",
+    "uvicorn",
+    "psycopg2-binary",
+    "ffmpeg-python",
+    "gdal",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
