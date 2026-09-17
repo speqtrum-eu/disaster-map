@@ -1,0 +1,53 @@
+# Live Orthomosaic Generator (LOG) - Production Deployment
+
+## Services
+
+- **LOG Server**: Main orthomosaic processing server
+- **Redis**: Message broker for frame delivery and state management
+- **Prometheus**: Metrics collection
+- **Grafana**: Visualization dashboard
+
+## Quick Start
+
+```bash
+# Start all services
+docker-compose up -d
+
+# Check status
+docker-compose ps
+
+# View logs
+docker-compose logs -f log-server
+```
+
+## Production Configuration
+
+Edit `deploy/docker-compose.override.yml` for production settings:
+
+- Set `LOG_MAX_WORKERS=16` for high-throughput processing
+- Configure Redis cluster in `REDIS_URL`
+- Enable monitoring with Prometheus/Grafana
+
+## Scaling
+
+For horizontal scaling, deploy multiple LOG servers behind a load balancer:
+
+```bash
+# Scale to 3 workers
+docker-compose up -d --scale log-server=3
+
+# Load balancing (nginx example)
+echo "proxy_pass http://log-server-1:8080;" > /etc/nginx/conf.d/log.conf
+echo "proxy_pass http://log-server-2:8080;" >> /etc/nginx/conf.d/log.conf
+echo "proxy_pass http://log-server-3:8080;" >> /etc/nginx/conf.d/log.conf
+```
+
+## Monitoring
+
+Access Grafana dashboard at `http://localhost:3000` (default credentials: admin/admin)
+
+Key metrics:
+- Processing throughput (frames/second)
+- End-to-end latency
+- GPU utilization
+- Error rates

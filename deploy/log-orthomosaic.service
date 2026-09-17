@@ -1,0 +1,39 @@
+[Unit]
+Description=Live Orthomosaic Generator (LOG) Server
+Documentation=https://github.com/disaster-map/log
+After=network.target redis.service
+Wants=redis.service
+
+[Service]
+Type=simple
+User=log
+Group=log
+WorkingDirectory=/opt/log
+ExecStart=/opt/log/venv/bin/python /opt/log/src/main.py
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=log-server
+
+# Environment configuration
+Environment="REDIS_URL=redis://localhost:6379"
+Environment="OUTPUT_DIR=/var/lib/log/outputs"
+Environment="MAX_WORKERS=4"
+Environment="BATCH_SIZE=32"
+Environment="GPU_DEVICE=0"
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/log/outputs /opt/log/data
+
+# Resource limits
+LimitNOFILE=65535
+CPUQuota=80%
+MemoryMax=4G
+
+[Install]
+WantedBy=multi-user.target

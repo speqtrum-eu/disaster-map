@@ -1,26 +1,46 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=65.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "log-orthomosaic"
-version = "0.1.0"
-description = "Live Orthomosaic Generator (LOG)"
+version = "1.0.0"
+description = "Live Orthomosaic Generator (LOG) - Real-time orthophoto reconstruction from video streams"
 readme = "README.md"
-requires-python = ">=3.9"
-dependencies = [
-    "numpy",
-    "opencv-python",
-    "torch",
-    "torchvision",
-    "fastapi",
-    "uvicorn",
-    "psycopg2-binary",
-    "ffmpeg-python",
-    "gdal",
+license = {text = "MIT"}
+requires-python = ">=3.9,<4.0"
+authors = [
+    {name = "Disaster Map Team", email = "team@disaster-map.org"},
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "Topic :: Multimedia :: Video",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest",
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/disaster-map/log"
+Documentation = "https://github.com/disaster-map/log#readme"
+Repository = "https://github.com/disaster-map/log.git"
+Issues = "https://github.com/disaster-map/log/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.setuptools.package-data]
+"*" = ["py.typed"]

@@ -1,11 +1,30 @@
-# Core Dependencies
-numpy
-opencv-python
-torch
-torchvision
-fastapi
-uvicorn
-psycopg2-binary
-ffmpeg-python
-pytest
-gdal
+# Live Orthomosaic Generator (LOG) - Production Dependencies
+
+# Core dependencies
+numpy>=1.24.0,<2.0.0
+scipy>=1.10.0,<2.0.0
+
+# Computer vision and image processing
+opencv-python-headless>=4.8.0,<5.0.0
+pillow>=10.0.0,<11.0.0
+
+# Geospatial support (optional - for orthorectification)
+gdal>=3.6.0,<4.0.0
+pyproj>=3.5.0,<4.0.0
+
+# GPU acceleration (vendor-agnostic)
+torch>=2.1.0,<3.0.0  # CUDA/OpenCL/Vulkan support
+
+# Message broker and async processing
+redis>=4.6.0,<5.0.0
+asyncio>=3.4.3
+
+# Production utilities
+structlog>=22.0.0,<23.0.0  # Structured logging
+prometheus-client>=0.18.0,<1.0.0  # Metrics export
+
+# Development (uncomment for local development)
+# pytest>=7.4.0,<8.0.0
+# pytest-cov>=4.1.0,<5.0.0
+# black>=23.0.0,<24.0.0
+# ruff>=0.1.0,<1.0.0
