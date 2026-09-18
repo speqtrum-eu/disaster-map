@@ -1,7 +1,7 @@
 """Logging utilities for LOG Server."""
 
 import logging
-from typing import Optional
+from typing import Optional, Dict
 
 
 def get_logger(name: str) -> logging.Logger:
