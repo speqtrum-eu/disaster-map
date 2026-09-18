@@ -5,7 +5,7 @@ Automatically detects available hardware and selects optimal backend.
 """
 
 import os
-from typing import Optional, Tuple, Dict, Any
+from typing import Optional, Tuple, Dict, Any, List
 from dataclasses import dataclass
 import numpy as np
 
