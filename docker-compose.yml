@@ -1,0 +1,150 @@
+# Development Docker Compose Setup
+version: '3.8'
+
+services:
+  # Backend Service - SLAM Engine & Data Pipeline
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: disaster-map-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src:/app/src
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - SLAM_ALGORITHM=orb_slam2
+      - DEBUG=true
+      - LOG_LEVEL=debug
+      - MAX_KEYFRAMES=1000
+      - RTSP_TIMEOUT_MS=500
+    command: python src/main.py --config config/development.yaml
+    restart: unless-stopped
+    networks:
+      - disaster-map-network
+
+  # Web Frontend Service
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+    container_name: disaster-map-web
+    ports:
+      - "3000:80"
+    volumes:
+      - ./web:/app/web
+    environment:
+      - API_URL=http://backend:8000
+      - SLAM_WS_URL=ws://backend:8000/ws/slam
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - disaster-map-network
+
+  # Database Service (PostgreSQL)
+  db:
+    image: postgres:15-alpine
+    container_name: disaster-map-db
+    environment:
+      POSTGRES_USER: disaster_map
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+      POSTGRES_DB: disaster_map
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./config/db-init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - disaster-map-network
+
+  # Cache Service (Redis)
+  redis:
+    image: redis:7-alpine
+    container_name: disaster-map-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - disaster-map-network
+
+  # Monitoring Service (Prometheus)
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: disaster-map-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - disaster-map-network
+
+  # Grafana Dashboard Service
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: disaster-map-grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - disaster-map-network
+
+volumes:
+  postgres_data:
+    name: disaster-map-postgres-data
+  redis_data:
+    name: disaster-map-redis-data
+  prometheus_data:
+    name: disaster-map-prometheus-data
+  grafana_data:
+    name: disaster-map-grafana-data
+
+networks:
+  disaster-map-network:
+    name: disaster-map-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+# Build & Run Commands
+# ====================
+# Build all services:
+#   docker compose build
+
+# Start all services:
+#   docker compose up --detach
+
+# Stop all services:
+#   docker compose down
+
+# View logs (all services):
+#   docker compose logs -f
+
+# View specific service logs:
+#   docker compose logs -f backend
+#   docker compose logs -f web
+
+# Run tests:
+#   pytest tests/ --cov=src
+
+# Execute benchmark:
+#   python scripts/benchmark-slam.py test_videos/sample.mp4
