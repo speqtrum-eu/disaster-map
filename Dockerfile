@@ -4,20 +4,29 @@
 
 FROM python:3.11-slim
 
+# Create the user
+RUN useradd app
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     # Build tools for compiling C extensions
     build-essential \
-    # Image processing libraries
-    libgl1-mesa-glx \
+    # Image processing libraries (Debian 12+ compatible)
+    libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
     libxrender-dev \
-    # GDAL for geospatial support (optional)
+    # Mesa utilities for GPU support
+    mesa-utils \
+    # GDAL system libraries and dev headers (required for Python bindings)
     gdal-bin \
+    libgdal-dev \
     # Cleanup
     && rm -rf /var/lib/apt/lists/*
+
+# Install GDAL from pip (compatible with system 3.10.3)
+RUN pip install --no-cache-dir gdal==3.6.0
 
 # Create application directories
 WORKDIR /app
