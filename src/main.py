@@ -16,9 +16,12 @@ import logging
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-# Add project root to path
+# Add project root to path (before importing log_utils)
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
+
+# Import logging utilities
+from src.log_utils import log_info, log_error, log_debug
 
 # Import LOG components
 from src.integration import (
