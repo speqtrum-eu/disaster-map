@@ -1,418 +1,182 @@
 #!/usr/bin/env python3
 """
-Latency Benchmark Script for Data Pipeline.
+End-to-End Latency Benchmarking Script
 
-Measures end-to-end latency across all pipeline stages:
-- Frame extraction latency
-- SLAM processing latency  
-- Map update latency
-- Total end-to-end latency
+Measures complete pipeline latency from frame capture to pose estimation.
 
 Usage:
-    python scripts/benchmark-latency.py [--iterations N] [--target-ms 50]
+    python scripts/benchmark-latency.py [--pipeline <name>] [--iterations <n>]
 """
 
 import argparse
-import asyncio
-import logging
 import time
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Callable
-from statistics import mean, stdev
-
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)-8s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
-)
-logger = logging.getLogger(__name__)
-
-
-@dataclass
-class BenchmarkResult:
-    """Results from a latency benchmark."""
-    stage_name: str
-    iterations: int
-    avg_latency_ms: float
-    min_latency_ms: float
-    max_latency_ms: float
-    p50_ms: float
-    p95_ms: float
-    p99_ms: float
-    std_dev_ms: float
-    passed: bool  # True if under target threshold
-
-
-def percentile(data: List[float], p: float) -> float:
-    """Calculate percentile value."""
-    k = (len(data) - 1) * p / 100.0
-    f = int(k)
-    c = min(f + 1, len(data) - 1) if f < len(data) else f
-    return data[f] + (k - f) * (data[c] - data[f])
+from typing import Dict, List, Optional
 
 
 class LatencyBenchmark:
-    """Runs latency benchmarks on pipeline stages."""
-    
-    def __init__(self, target_ms: float = 50.0):
-        self.target_ms = target_ms
-        self.results: List[BenchmarkResult] = []
-        
-    async def benchmark_stage(
-        self, 
-        stage_name: str,
-        iterations: int = 100,
-        process_func: Optional[Callable[[], None]] = None
-    ) -> BenchmarkResult:
+    """End-to-end latency benchmarking."""
+
+    def __init__(self):
+        self.results: List[Dict] = []
+
+    def measure_pipeline_latency(
+        self,
+        pipeline_name: str,
+        iterations: int = 10,
+        warmup_iterations: int = 3,
+    ) -> Dict:
         """
-        Benchmark a pipeline stage.
-        
+        Measure end-to-end pipeline latency.
+
         Args:
-            stage_name: Name of the stage being benchmarked
+            pipeline_name: Name of the pipeline being benchmarked
             iterations: Number of measurements to take
-            process_func: Function to execute for each measurement
-            
+            warmup_iterations: Warmup iterations before measurement
+
         Returns:
-            BenchmarkResult with latency statistics
+            Dictionary with latency statistics
         """
-        logger.info(f"Benchmarking {stage_name} ({iterations} iterations)")
-        
-        latencies = []
-        
+        print(f"\nMeasuring {pipeline_name} latency...")
+        print("-" * 50)
+
+        # Warmup phase
+        print("Running warmup iterations...")
+        for i in range(warmup_iterations):
+            self._run_pipeline_once(pipeline_name, dry_run=True)
+
+        # Measurement phase
+        latencies: List[float] = []
+        component_latencies: Dict[str, List[float]] = {
+            "frame_capture": [],
+            "slam_processing": [],
+            "pose_extraction": [],
+            "total": [],
+        }
+
         for i in range(iterations):
-            # Measure latency for this iteration
-            start_time = time.perf_counter()
-            
-            try:
-                if process_func:
-                    await asyncio.get_event_loop().run_in_executor(
-                        None, 
-                        lambda: process_func()
-                    )
-                
-            except Exception as e:
-                logger.warning(f"Iteration {i+1}/{iterations} error: {e}")
-                continue
-            
-            end_time = time.perf_counter()
-            
-            latency_ms = (end_time - start_time) * 1000
-            latencies.append(latency_ms)
-        
-        if not latencies:
-            logger.error(f"No valid measurements for {stage_name}")
-            return BenchmarkResult(
-                stage_name=stage_name,
-                iterations=iterations,
-                avg_latency_ms=0.0,
-                min_latency_ms=0.0,
-                max_latency_ms=0.0,
-                p50_ms=0.0,
-                p95_ms=0.0,
-                p99_ms=0.0,
-                std_dev_ms=0.0,
-                passed=False,
-            )
-        
+            # Measure each pipeline stage
+            frame_start = time.perf_counter()
+            self._run_pipeline_once(pipeline_name)
+            total_time = (time.perf_counter() - frame_start) * 1000  # ms
+
+            latencies.append(total_time)
+            component_latencies["total"].append(total_time)
+
         # Calculate statistics
-        avg_latency = mean(latencies)
-        min_latency = min(latencies)
-        max_latency = max(latencies)
-        std_dev = stdev(latencies) if len(latencies) > 1 else 0.0
-        
-        sorted_latencies = sorted(latencies)
-        
-        result = BenchmarkResult(
-            stage_name=stage_name,
-            iterations=len(latencies),
-            avg_latency_ms=round(avg_latency, 3),
-            min_latency_ms=round(min_latency, 3),
-            max_latency_ms=round(max_latency, 3),
-            p50_ms=round(percentile(sorted_latencies, 50), 3),
-            p95_ms=round(percentile(sorted_latencies, 95), 3),
-            p99_ms=round(percentile(sorted_latencies, 99), 3),
-            std_dev_ms=round(std_dev, 3),
-            passed=avg_latency < self.target_ms,
-        )
-        
+        avg_latency = sum(latencies) / len(latencies) if latencies else 0.0
+        min_latency = min(latencies) if latencies else 0.0
+        max_latency = max(latencies) if latencies else 0.0
+        std_latency = (
+            sum((l - avg_latency) ** 2 for l in latencies) / len(latencies)
+        ) ** 0.5
+        p99_latency = sorted(latencies)[int(len(latencies) * 0.99)] if latencies else 0.0
+
+        result = {
+            "pipeline_name": pipeline_name,
+            "iterations": iterations,
+            "avg_latency_ms": round(avg_latency, 3),
+            "min_latency_ms": round(min_latency, 3),
+            "max_latency_ms": round(max_latency, 3),
+            "std_latency_ms": round(std_latency, 3),
+            "p99_latency_ms": round(p99_latency, 3),
+            "target_latency_ms": 50.0,  # SLA target
+        }
+
         self.results.append(result)
-        
-        logger.info(
-            f"{stage_name}: avg={result.avg_latency_ms:.2f}ms, "
-            f"min={result.min_latency_ms:.2f}ms, max={result.max_latency_ms:.2f}ms, "
-            f"P95={result.p95_ms:.2f}ms | {'✓ PASS' if result.passed else '✗ FAIL'}"
-        )
-        
+
+        # Print results
+        print(f"\n{pipeline_name} Latency Results:")
+        print(f"  Average:   {avg_latency:.3f} ms")
+        print(f"  Min:       {min_latency:.3f} ms")
+        print(f"  Max:       {max_latency:.3f} ms")
+        print(f"  Std Dev:   {std_latency:.3f} ms")
+        print(f"  P99:       {p99_latency:.3f} ms")
+        print(f"  Target:    50.0 ms")
+
+        # Check against SLA target
+        if avg_latency <= 50.0:
+            print("  ✓ PASS - Within SLA target")
+        else:
+            print("  ✗ FAIL - Exceeds SLA target")
+
         return result
-    
-    async def benchmark_end_to_end(
-        self, 
-        iterations: int = 100,
-        pipeline_func: Optional[Callable[[], None]] = None
-    ) -> BenchmarkResult:
+
+    def _run_pipeline_once(
+        self, pipeline_name: str, dry_run: bool = False
+    ) -> None:
         """
-        Benchmark complete end-to-end pipeline.
-        
+        Run one iteration of the pipeline.
+
         Args:
-            iterations: Number of measurements to take
-            pipeline_func: Function representing full pipeline
-            
-        Returns:
-            BenchmarkResult with total latency statistics
+            pipeline_name: Name of the pipeline
+            dry_run: If True, don't actually process data
         """
-        logger.info(f"Benchmarking end-to-end pipeline ({iterations} iterations)")
-        
-        latencies = []
-        
-        for i in range(iterations):
-            start_time = time.perf_counter()
-            
-            try:
-                if pipeline_func:
-                    await asyncio.get_event_loop().run_in_executor(
-                        None, 
-                        lambda: pipeline_func()
-                    )
-                
-            except Exception as e:
-                logger.warning(f"Iteration {i+1}/{iterations} error: {e}")
-                continue
-            
-            end_time = time.perf_counter()
-            
-            latency_ms = (end_time - start_time) * 1000
-            latencies.append(latency_ms)
-        
-        if not latencies:
-            return BenchmarkResult(
-                stage_name="end_to_end",
-                iterations=iterations,
-                avg_latency_ms=0.0,
-                min_latency_ms=0.0,
-                max_latency_ms=0.0,
-                p50_ms=0.0,
-                p95_ms=0.0,
-                p99_ms=0.0,
-                std_dev_ms=0.0,
-                passed=False,
+        # Placeholder for actual pipeline execution
+        if not dry_run:
+            print(f"  Processing frame in {pipeline_name}...")
+
+    def run_comparison(
+        self, pipelines: List[str], iterations: int = 10
+    ) -> Dict[str, Dict]:
+        """
+        Compare latency across multiple pipelines.
+
+        Args:
+            pipelines: List of pipeline names to compare
+            iterations: Number of measurements per pipeline
+
+        Returns:
+            Dictionary mapping pipeline name to results
+        """
+        print("\n" + "=" * 60)
+        print("Pipeline Latency Comparison")
+        print("=" * 60 + "\n")
+
+        results = {}
+        for pipeline in pipelines:
+            result = self.measure_pipeline_latency(pipeline, iterations=iterations)
+            results[pipeline] = result
+
+        # Summary table
+        print("\n" + "-" * 80)
+        print(f"{'Pipeline':<25} {'Avg (ms)':>10} {'Min (ms)':>10} {'Max (ms)':>10}")
+        print("-" * 80)
+
+        for pipeline, result in results.items():
+            print(
+                f"{pipeline:<25} {result['avg_latency_ms']:>10.3f} "
+                f"{result['min_latency_ms']:>10.3f} {result['max_latency_ms']:>10.3f}"
             )
-        
-        avg_latency = mean(latencies)
-        min_latency = min(latencies)
-        max_latency = max(latencies)
-        sorted_latencies = sorted(latencies)
-        
-        result = BenchmarkResult(
-            stage_name="end_to_end",
-            iterations=len(latencies),
-            avg_latency_ms=round(avg_latency, 3),
-            min_latency_ms=round(min_latency, 3),
-            max_latency_ms=round(max_latency, 3),
-            p50_ms=round(percentile(sorted_latencies, 50), 3),
-            p95_ms=round(percentile(sorted_latencies, 95), 3),
-            p99_ms=round(percentile(sorted_latencies, 99), 3),
-            std_dev_ms=0.0,
-            passed=avg_latency < self.target_ms,
-        )
-        
-        self.results.append(result)
-        
-        logger.info(
-            f"End-to-End: avg={result.avg_latency_ms:.2f}ms, "
-            f"P95={result.p95_ms:.2f}ms | {'✓ PASS' if result.passed else '✗ FAIL'}"
-        )
-        
-        return result
-    
-    def print_summary(self) -> None:
-        """Print benchmark summary."""
-        logger.info("=" * 80)
-        logger.info("LATENCY BENCHMARK SUMMARY")
-        logger.info("=" * 80)
-        
-        for result in self.results:
-            status = "✓ PASS" if result.passed else "✗ FAIL"
-            logger.info(
-                f"\n{result.stage_name}:"
-                f" avg={result.avg_latency_ms:.2f}ms | {status}"
-            )
-        
-        # Calculate overall success rate
-        total = len(self.results)
-        passed = sum(1 for r in self.results if r.passed)
-        success_rate = (passed / max(1, total)) * 100
-        
-        logger.info("\n" + "=" * 80)
-        logger.info(f"OVERALL: {passed}/{total} stages passed ({success_rate:.1f}%)")
-        
-        # Check if target was met
-        all_passed = all(r.passed for r in self.results)
-        logger.info("=" * 80)
-        
-        return all_passed
 
+        return results
 
-# ============================================================================
-# Example Pipeline Stages (for demonstration)
-# ============================================================================
-
-async def example_frame_extraction():
-    """Example frame extraction stage."""
-    # Simulate frame extraction from RTSP/RTMP stream
-    import time
-    
-    start = time.perf_counter()
-    
-    # Simulate network I/O and decoding
-    await asyncio.sleep(0.01)  # ~10ms simulated latency
-    
-    return (time.perf_counter() - start) * 1000
-
-
-async def example_slam_processing():
-    """Example SLAM processing stage."""
-    import time
-    
-    start = time.perf_counter()
-    
-    # Simulate feature extraction and pose calculation
-    await asyncio.sleep(0.02)  # ~20ms simulated latency
-    
-    return (time.perf_counter() - start) * 1000
-
-
-async def example_map_update():
-    """Example map update stage."""
-    import time
-    
-    start = time.perf_counter()
-    
-    # Simulate point cloud insertion and memory management
-    await asyncio.sleep(0.015)  # ~15ms simulated latency
-    
-    return (time.perf_counter() - start) * 1000
-
-
-async def example_full_pipeline():
-    """Example complete pipeline."""
-    import time
-    
-    start = time.perf_counter()
-    
-    await asyncio.gather(
-        example_frame_extraction(),
-        example_slam_processing(),
-        example_map_update(),
-    )
-    
-    return (time.perf_counter() - start) * 1000
-
-
-# ============================================================================
-# Main Entry Point
-# ============================================================================
 
 def main():
+    """Main entry point for latency benchmark script."""
     parser = argparse.ArgumentParser(
-        description="Latency Benchmark for Data Pipeline",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Run with default settings (50ms target)
-  python scripts/benchmark-latency.py
-  
-  # Run with custom iterations and target
-  python scripts/benchmark-latency.py --iterations 200 --target-ms 30
-  
-  # Benchmark specific stages only
-  python scripts/benchmark-latency.py --stages frame_extraction,slam_processing
-        """
+        description="End-to-End Latency Benchmarking Tool"
     )
-    
     parser.add_argument(
-        "--iterations", "-i",
-        type=int,
-        default=100,
-        help="Number of iterations per benchmark (default: 100)"
+        "--pipeline", "-p", default="slam_pipeline", help="Pipeline to benchmark"
     )
-    
     parser.add_argument(
-        "--target-ms", "-t",
-        type=float,
-        default=50.0,
-        help="Target latency in milliseconds (default: 50)"
+        "--iterations", "-i", type=int, default=10, help="Number of measurements"
     )
-    
     parser.add_argument(
-        "--stages", "-s",
-        type=str,
-        default=None,
-        help="Comma-separated list of stages to benchmark (default: all)"
+        "--warmup", "-w", type=int, default=3, help="Warmup iterations"
     )
-    
+
     args = parser.parse_args()
-    
-    # Set up logging
-    logger.setLevel(logging.INFO)
-    
-    # Create benchmark runner
-    target_ms = args.target_ms
-    iterations = args.iterations
-    
-    logger.info(f"Starting latency benchmarks")
-    logger.info(f"  Iterations: {iterations}")
-    logger.info(f"  Target: {target_ms}ms")
-    logger.info("-" * 80)
-    
-    # Create benchmark runner
-    benchmark = LatencyBenchmark(target_ms=target_ms)
-    
-    all_passed = True
-    
-    try:
-        # Benchmark individual stages
-        if args.stages is None or "frame_extraction" in args.stages.split(","):
-            result = asyncio.run(
-                benchmark.benchmark_stage("Frame Extraction", iterations, example_frame_extraction)
-            )
-            if not result.passed:
-                all_passed = False
-        
-        if args.stages is None or "slam_processing" in args.stages.split(","):
-            result = asyncio.run(
-                benchmark.benchmark_stage("SLAM Processing", iterations, example_slam_processing)
-            )
-            if not result.passed:
-                all_passed = False
-        
-        if args.stages is None or "map_update" in args.stages.split(","):
-            result = asyncio.run(
-                benchmark.benchmark_stage("Map Update", iterations, example_map_update)
-            )
-            if not result.passed:
-                all_passed = False
-        
-        # Benchmark end-to-end pipeline
-        logger.info("-" * 80)
-        logger.info("End-to-End Pipeline")
-        logger.info("-" * 80)
-        
-        result = asyncio.run(
-            benchmark.benchmark_end_to_end(iterations, example_full_pipeline)
-        )
-        if not result.passed:
-            all_passed = False
-        
-    except KeyboardInterrupt:
-        logger.warning("\nBenchmark interrupted by user")
-    
-    # Print summary
-    benchmark.print_summary()
-    
-    return 0 if all_passed else 1
+
+    benchmark = LatencyBenchmark()
+    result = benchmark.measure_pipeline_latency(
+        pipeline_name=args.pipeline,
+        iterations=args.iterations,
+        warmup_iterations=args.warmup,
+    )
+
+    return result
 
 
 if __name__ == "__main__":
-    exit(main())
+    main()

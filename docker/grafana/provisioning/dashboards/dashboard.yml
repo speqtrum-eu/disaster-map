@@ -1,0 +1,33 @@
+# =============================================================================
+# Grafana Dashboard Provisioning Configuration
+# Loads dashboards from /etc/grafana/provisioning/dashboards/
+# =============================================================================
+
+apiVersion: 1
+
+providers:
+  # --------------------------------------------------------------------------
+  # Disaster Map Main Dashboard
+  # --------------------------------------------------------------------------
+  - name: 'Disaster Map'
+    org_id: 1
+    folder: 'SLAM Monitoring'
+    folder_uid: 'slam-monitoring-folder'
+    type: file
+    disable_deletion: false
+    update_interval: 30s
+    options:
+      path: /etc/grafana/provisioning/dashboards/disaster-map
+
+  # --------------------------------------------------------------------------
+  # Infrastructure Dashboard
+  # --------------------------------------------------------------------------
+  - name: 'Infrastructure'
+    org_id: 1
+    folder: 'Infrastructure'
+    folder_uid: 'infra-folder'
+    type: file
+    disable_deletion: false
+    update_interval: 30s
+    options:
+      path: /etc/grafana/provisioning/dashboards/infrastructure

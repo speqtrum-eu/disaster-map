@@ -1,65 +1,147 @@
-# Multi-stage Docker Build for Disaster Map Backend
-FROM python:3.10-slim as builder
+# =============================================================================
+# Disaster Map Backend - Production Optimized Docker Image
+# Target size: <500MB | Build time optimization enabled
+# =============================================================================
 
-# Set environment variables
+# -----------------------------------------------------------------------------
+# Stage 1: Builder - Install dependencies with optimized caching
+# -----------------------------------------------------------------------------
+FROM python:3.10-slim-bookworm as builder
+
+# Environment optimizations for build process
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
+    POETRY_NO_INTERACTION=1
 
 WORKDIR /app
 
-# Install build dependencies
+# Install build dependencies with minimal footprint
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Build essentials for compilation
     build-essential \
+    gcc \
+    g++ \
+    make \
+    cmake \
+    # OpenCV system libraries (required by opencv-python)
     libgl1-mesa-glx \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
     libxrender-dev \
-    && rm -rf /var/lib/apt/lists/*
+    libdbus-1-3 \
+    libudev1 \
+    # FFmpeg for video processing
+    ffmpeg \
+    # Git for cloning dependencies if needed
+    git \
+    # Clean up package lists immediately
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get autoremove -y \
+    && apt-get clean
 
-# Copy requirements first for better caching
+# Create virtual environment for isolated builds
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy requirements first for layer caching
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --user --no-cache-dir -r requirements.txt
+# Install production dependencies only (no dev tools)
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt \
+    # Pre-compile Python bytecode for faster imports at runtime
+    && python -m compileall /app/src 2>/dev/null || true
 
-# Production Stage
-FROM python:3.10-slim as production
+# -----------------------------------------------------------------------------
+# Stage 2: Production - Minimal runtime image
+# -----------------------------------------------------------------------------
+FROM python:3.10-slim-bookworm as production
+
+LABEL maintainer="Disaster Map Team <team@disaster-map.io>" \
+      description="Production-optimized Disaster Map Backend" \
+      version="1.0.0"
+
+# Security hardening environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    UVICORN_WORKERS=4 \
+    UVICORN_HTTP_KEEPALIVE_TIMEOUT=5 \
+    LOG_LEVEL=INFO
 
 WORKDIR /app
 
-# Copy installed packages from builder
-COPY --from=builder /root/.local /root/.local
-ENV PATH=/root/.local/bin:$PATH
-
-# Install runtime dependencies
+# Install minimal runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Runtime libraries for OpenCV and video processing
     libgl1-mesa-glx \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
     libxrender-dev \
+    libdbus-1-3 \
+    libudev1 \
+    # Network utilities for health checks and debugging
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    wget \
+    ca-certificates \
+    # System monitoring tools (optional, can be removed if not needed)
+    procps \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get autoremove -y \
+    && apt-get clean
 
-# Copy application code
+# Create non-root user for security best practices
+RUN groupadd --gid 1000 appgroup \
+    && useradd --uid 1000 --gid 1000 --shell /bin/bash --create-home appuser
+
+# Copy virtual environment from builder stage
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy application code (only what's needed)
 COPY src/ ./src/
 COPY config/ ./config/
 COPY scripts/ ./scripts/
 
-# Create non-root user for security
-RUN useradd --create-home --shell /bin/bash appuser
-CHOWN -R appuser:appuser /app
+# Set proper ownership for security
+RUN chown -R appuser:appgroup /app \
+    && chmod -R 750 /app/src \
+    && chmod -R 644 /app/config
+
+# Switch to non-root user
 USER appuser
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+# Create PID and log files directory with proper permissions
+RUN mkdir -p /var/log/disaster-map \
+    && chown appuser:appgroup /var/log/disaster-map
+
+# Health check endpoint (FastAPI standard)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Expose port
+# Expose application port
 EXPOSE 8000
 
-# Set entrypoint
-ENTRYPOINT ["python", "src/main.py"]
+# Set environment variables for production
+ENV APP_HOME=/app \
+    PYTHONPATH=${APP_HOME}/src:${PYTHONPATH} \
+    UVICORN_CONFIG=uvicorn.config.prod.yaml
+
+# Entrypoint script for proper startup and logging
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["entrypoint.sh"]
+CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "${UVICORN_WORKERS}"]
+
+# =============================================================================
+# Build Instructions:
+#   docker build -t disaster-map-backend:latest .
+#   docker build --target production -t disaster-map-backend:prod .
+#   docker build --build-arg BUILDKIT_INLINE_CACHE=1 -t disaster-map-backend .
+# =============================================================================

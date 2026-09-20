@@ -1,0 +1,273 @@
+# =============================================================================
+# Disaster Map - Prometheus Alert Rules Configuration
+# Defines critical alerts for SLAM performance, system health, and errors
+# =============================================================================
+
+apiVersion: 1
+
+groups:
+  # --------------------------------------------------------------------------
+  # SLAM Performance Alerts (Critical)
+  # --------------------------------------------------------------------------
+  - name: slam_performance_alerts
+    interval: 30s
+    rules:
+      # Alert when FPS drops below acceptable threshold
+      - alert: CriticalLowFPS
+        expr: rate(frame_processed_total[1m]) * 60 < 25
+        for: 30s
+        labels:
+          severity: critical
+          team: 'vision-slam'
+        annotations:
+          summary: "Critical SLAM FPS drop detected"
+          description: "Current FPS: {{ $value | floatFormat(1) }} (threshold: 25)"
+          runbook_url: "https://disaster-map.io/runbooks/slam-low-fps"
+
+      # Alert when FPS is below target but not critical
+      - alert: WarningLowFPS
+        expr: rate(frame_processed_total[1m]) * 60 < 30
+        for: 1m
+        labels:
+          severity: warning
+          team: 'vision-slam'
+        annotations:
+          summary: "SLAM FPS below target"
+          description: "Current FPS: {{ $value | floatFormat(1) }} (threshold: 30)"
+
+      # Alert when processing latency exceeds threshold
+      - alert: HighProcessingLatency
+        expr: avg(latency_seconds) * 1000 > 200
+        for: 1m
+        labels:
+          severity: warning
+          team: 'backend'
+        annotations:
+          summary: "High SLAM processing latency"
+          description: "Average latency: {{ $value | humanizeDuration }} (threshold: 200ms)"
+
+      # Alert when latency spikes significantly
+      - alert: LatencySpikes
+        expr: histogram_quantile(0.95, rate(latency_seconds_bucket[1m])) > 300
+        for: 1m
+        labels:
+          severity: warning
+          team: 'backend'
+        annotations:
+          summary: "Latency spikes detected"
+          description: "P95 latency: {{ $value | humanizeDuration }}"
+
+      # Alert when tracking success rate drops
+      - alert: LowTrackingSuccessRate
+        expr: sum(rate(tracking_success_total[1m])) / sum(rate(frame_processed_total[1m])) < 0.90
+        for: 2m
+        labels:
+          severity: warning
+          team: 'vision-slam'
+        annotations:
+          summary: "Tracking success rate below threshold"
+          description: "Success rate: {{ $value | humanizePercentage }}"
+
+  # --------------------------------------------------------------------------
+  # System Health Alerts (Critical)
+  # --------------------------------------------------------------------------
+  - name: system_health_alerts
+    interval: 30s
+    rules:
+      # Alert when memory usage is critically high
+      - alert: CriticalMemoryUsage
+        expr: process_resident_memory_bytes / container_spec_memory_limit_bytes > 0.95
+        for: 1m
+        labels:
+          severity: critical
+          team: 'devops'
+        annotations:
+          summary: "Critical memory usage detected"
+          description: "Memory at {{ $value | humanizePercentage }} of limit"
+
+      # Alert when memory usage is high but not critical
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes / container_spec_memory_limit_bytes > 0.85
+        for: 2m
+        labels:
+          severity: warning
+          team: 'devops'
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory at {{ $value | humanizePercentage }} of limit"
+
+      # Alert when CPU utilization is high
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total[1m]) * 100 > 90
+        for: 2m
+        labels:
+          severity: warning
+          team: 'devops'
+        annotations:
+          summary: "High CPU utilization"
+          description: "CPU at {{ $value | humanizePercentage }}"
+
+      # Alert when disk space is running low
+      - alert: LowDiskSpace
+        expr: node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} < 0.1
+        for: 5m
+        labels:
+          severity: critical
+          team: 'devops'
+        annotations:
+          summary: "Low disk space on root filesystem"
+          description: "Only {{ $value | humanizePercentage }} free space remaining"
+
+      # Alert when network I/O is saturated
+      - alert: NetworkIOThrrottling
+        expr: rate(node_network_receive_bytes_total[1m]) + rate(node_network_transmit_bytes_total[1m]) > 1e9
+        for: 2m
+        labels:
+          severity: warning
+          team: 'devops'
+        annotations:
+          summary: "Network I/O throttling detected"
+          description: "Network throughput exceeds 1 Gbps"
+
+  # --------------------------------------------------------------------------
+  # API and Error Rate Alerts (Critical)
+  # --------------------------------------------------------------------------
+  - name: api_error_alerts
+    interval: 30s
+    rules:
+      # Alert when HTTP error rate is high
+      - alert: HighHTTPErrorRate
+        expr: sum(rate(http_requests_total{status=~"5.."}[1m])) / sum(rate(http_requests_total[1m])) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          team: 'backend'
+        annotations:
+          summary: "High HTTP error rate (5xx)"
+          description: "Error rate: {{ $value | humanizePercentage }}"
+
+      # Alert when client errors are high
+      - alert: HighClientErrorRate
+        expr: sum(rate(http_requests_total{status=~"4.."}[1m])) / sum(rate(http_requests_total[1m])) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          team: 'backend'
+        annotations:
+          summary: "High HTTP error rate (4xx)"
+          description: "Error rate: {{ $value | humanizePercentage }}"
+
+      # Alert when request latency is high
+      - alert: HighRequestLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[1m])) > 2
+        for: 1m
+        labels:
+          severity: warning
+          team: 'backend'
+        annotations:
+          summary: "High request latency (P95)"
+          description: "P95 latency: {{ $value | humanizeDuration }}"
+
+      # Alert when request rate drops significantly
+      - alert: LowRequestRate
+        expr: sum(rate(http_requests_total[1m])) < 0.1
+        for: 2m
+        labels:
+          severity: warning
+          team: 'backend'
+        annotations:
+          summary: "Low API request rate"
+          description: "Requests/sec: {{ $value | humanize }} (may indicate service issues)"
+
+  # --------------------------------------------------------------------------
+  # Stream Connection Alerts (Critical)
+  # --------------------------------------------------------------------------
+  - name: stream_connection_alerts
+    interval: 30s
+    rules:
+      # Alert when active streams drop unexpectedly
+      - alert: LowActiveStreams
+        expr: disaster_map_active_streams < 5
+        for: 1m
+        labels:
+          severity: warning
+          team: 'backend'
+        annotations:
+          summary: "Low number of active stream connections"
+          description: "Active streams: {{ $value }} (threshold: 5)"
+
+      # Alert when connection rate is abnormal
+      - alert: AbnormalConnectionRate
+        expr: sum(rate(disaster_map_connection_total[1m])) > 100
+        for: 1m
+        labels:
+          severity: warning
+          team: 'backend'
+        annotations:
+          summary: "Abnormal connection rate"
+          description: "Connections/sec: {{ $value | humanize }}"
+
+  # --------------------------------------------------------------------------
+  # Infrastructure Alerts (Critical)
+  # --------------------------------------------------------------------------
+  - name: infrastructure_alerts
+    interval: 30s
+    rules:
+      # Alert when Prometheus is not scraping targets
+      - alert: TargetScrapingFailure
+        expr: absent(up{job="disaster-map-backend"}) == 1
+        for: 2m
+        labels:
+          severity: critical
+          team: 'devops'
+        annotations:
+          summary: "Prometheus target not responding"
+          description: "Backend service is not being scraped by Prometheus"
+
+      # Alert when node exporter is down
+      - alert: NodeExporterDown
+        expr: up{job="node-exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: 'devops'
+        annotations:
+          summary: "Node exporter not responding"
+          description: "System metrics collection is unavailable"
+
+      # Alert when Redis connection issues
+      - alert: RedisConnectionIssues
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: 'backend'
+        annotations:
+          summary: "Redis connection lost"
+          description: "Cache layer is unavailable"
+
+# -----------------------------------------------------------------------------
+# Recording Rules (Pre-computed Metrics)
+# -----------------------------------------------------------------------------
+- name: recording_rules
+  interval: 30s
+  rules:
+    # Aggregate SLAM FPS metrics
+    - record: 'disaster_map:slam_fps_rate'
+      expr: rate(frame_processed_total[1m]) * 60
+
+    # Calculate average latency in milliseconds
+    - record: 'disaster_map:avg_latency_ms'
+      expr: avg(latency_seconds) * 1000
+
+    # Compute error rates for quick queries
+    - record: 'disaster_map:error_rate_5m'
+      expr: sum(rate(error_total{status=~"5.."}[5m])) / sum(rate(request_total[5m])) * 100
+
+    # Aggregate active stream count by instance
+    - record: 'disaster_map:active_streams_by_instance'
+      expr: disaster_map_active_streams
+
+    # Compute request rate per endpoint
+    - record: 'disaster_map:request_rate_per_endpoint'
+      expr: sum(rate(http_requests_total[1m])) by (endpoint)

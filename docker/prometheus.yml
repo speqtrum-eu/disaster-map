@@ -1,0 +1,148 @@
+# =============================================================================
+# Disaster Map - Prometheus Monitoring Configuration
+# Monitors: SLAM FPS, Latency, Memory Usage, Error Rates, Stream Connections
+# =============================================================================
+
+global:
+  scrape_interval: 15s           # How often to scrape metrics
+  evaluation_interval: 15s       # How often to evaluate rules
+  external_labels:
+    cluster: 'disaster-map-prod'
+    environment: 'production'
+    service: 'slam-backend'
+
+# Alertmanager configuration for incident notifications
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+      timeout: 10s
+      api_version: v2
+
+# Rule files for custom alerts and recording rules
+rule_files:
+  # - "alerts.yml"           # Custom alert definitions
+  # - "recording_rules.yml"  # Recording rules for pre-computed metrics
+
+# Scrape configurations for all targets
+scrape_configs:
+  # --------------------------------------------------------------------------
+  # Prometheus Self-Monitoring
+  # --------------------------------------------------------------------------
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # --------------------------------------------------------------------------
+  # Disaster Map Backend Application
+  # --------------------------------------------------------------------------
+  - job_name: 'disaster-map-backend'
+    static_configs:
+      - targets: ['backend:8000']
+        labels:
+          app: 'slam-backend'
+          version: 'v1.0.0'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    relabel_configs:
+      # Drop metrics with high cardinality (e.g., request IDs)
+      - source_labels: [__name__, instance]
+        regex: '.*;instance=.*'
+        action: drop
+
+  # --------------------------------------------------------------------------
+  # Node Exporter for Host Metrics
+  # --------------------------------------------------------------------------
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 15s
+
+  # --------------------------------------------------------------------------
+  # Redis Cache Monitoring
+  # --------------------------------------------------------------------------
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # --------------------------------------------------------------------------
+  # PostgreSQL Database Monitoring (if using pg_exporter)
+  # --------------------------------------------------------------------------
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 30s
+
+# -----------------------------------------------------------------------------
+# Recording Rules for Pre-computed Metrics
+# -----------------------------------------------------------------------------
+# These rules aggregate metrics for faster querying and dashboards
+recording_rules:
+  - record: 'disaster_map:slam_fps_rate'
+    expr: rate(frame_processed_total[1m]) * 60
+
+  - record: 'disamer_map:avg_latency_ms'
+    expr: avg(latency_seconds) * 1000
+
+  - record: 'disaster_map:error_rate_5m'
+    expr: sum(rate(error_total{status=~"5.."}[5m])) / sum(rate(request_total[5m])) * 100
+
+  - record: 'disaster_map:active_connections'
+    expr: sum(disaster_map_active_streams) by (instance)
+
+# -----------------------------------------------------------------------------
+# Alerting Rules for Critical Issues
+# -----------------------------------------------------------------------------
+# Define thresholds and actions in separate alerts.yml file
+groups:
+  # SLAM Performance Alerts
+  - name: slam_performance
+    rules:
+      - alert: HighSLAmlatency
+        expr: avg(latency_seconds) > 0.15
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High SLAM processing latency detected"
+          description: "Average latency is {{ $value | humanizeDuration }} (threshold: 150ms)"
+
+      - alert: LowSLAMFPS
+        expr: rate(frame_processed_total[1m]) < 29
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low SLAM FPS detected"
+          description: "Current FPS: {{ $value | floatFormat(1) }} (threshold: 30)"
+
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes / container_spec_memory_limit_bytes > 0.85
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage at {{ $value | humanizePercentage }}"
+
+      - alert: HighErrorRate
+        expr: sum(rate(error_total[1m])) / sum(rate(request_total[1m])) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }}"
+
+# -----------------------------------------------------------------------------
+# Dashboard Configuration References
+# -----------------------------------------------------------------------------
+# Dashboards are loaded from /etc/grafana/provisioning/dashboards/
+# See docker-compose.monitoring.yml for provisioning setup
+# -----------------------------------------------------------------------------

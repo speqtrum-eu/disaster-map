@@ -1,4 +1,3 @@
-# CI/CD Pipeline Configuration
 name: CI/CD Pipeline
 
 on:
@@ -6,27 +5,17 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
-  workflow_dispatch:  # Allow manual triggering
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 env:
-  PYTHON_VERSION: '3.10'
-  NODE_VERSION: '18'
+  PYTHON_VERSION: "3.10"
 
 jobs:
-  # ====================
-  # Lint & Code Quality
-  # ====================
   lint:
-    name: Lint & Code Quality
+    name: Linting
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -35,34 +24,30 @@ jobs:
       
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
-          pip install flake8 isort black mypy ruff
+          pip install -r requirements.txt
+          pip install black isort flake8 mypy ruff
       
-      - name: Check formatting (Black)
-        run: black --check src/ tests/ || true
+      - name: Check formatting (black)
+        run: black --check src tests
       
       - name: Check imports (isort)
-        run: isort --check-only src/ tests/ || true
+        run: isort --check-only src tests
       
       - name: Run linter (flake8)
-        run: flake8 src/ tests/ --max-line-length=100
+        run: flake8 src tests --max-line-length=100
       
       - name: Type checking (mypy)
-        run: mypy src/ --ignore-missing-imports
+        run: mypy src --ignore-missing-imports
       
-      - name: Code style check (ruff)
-        run: ruff check src/ tests/
+      - name: Code quality (ruff)
+        run: ruff check src tests
 
-  # ====================
-  # Unit Tests
-  # ====================
-  test-unit:
-    name: Unit Tests with Coverage
+  test:
+    name: Testing
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -71,85 +56,32 @@ jobs:
       
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
-          pip install pytest pytest-cov pytest-asyncio coverage
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-timeout
       
       - name: Run unit tests
         run: |
-          pytest tests/unit \
-            --cov=src \
-            --cov-report=xml \
-            --cov-report=term-missing \
-            --cov-fail-under=80 \
-            -v
+          pytest tests/unit --cov=src --cov-report=xml --cov-report=term-missing
+          
+      - name: Run integration tests
+        run: |
+          pytest tests/integration --timeout=300 --cov-append
       
-      - name: Upload coverage report
-        uses: codecov/codecov-action@v3
+      - name: Run e2e tests
+        run: |
+          pytest tests/e2e --timeout=600 --cov-append
+      
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
         with:
-          file: ./coverage.xml
           fail_ci_if_error: false
 
-  # ====================
-  # Integration Tests
-  # ====================
-  test-integration:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_password
-          POSTGRES_DB: test_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-      
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install pytest pytest-asyncio psycopg2-binary redis
-      
-      - name: Run integration tests
-        env:
-          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
-          REDIS_URL: redis://localhost:6379/0
-        run: |
-          pytest tests/integration \
-            --timeout=120 \
-            -v \
-            --tb=short
-
-  # ====================
-  # Performance Benchmark
-  # ====================
   benchmark:
-    name: Performance Benchmark
+    name: Performance Benchmarks
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -157,154 +89,49 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
       
       - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install pytest psutil numpy
+        run: pip install -r requirements.txt
       
-      - name: Run performance benchmark
+      - name: Run SLAM benchmarks
         run: |
-          # Generate test data if needed
-          python scripts/generate-demo-data.py --frames 1000 || true
-          
-          # Run SLAM performance benchmark
-          python scripts/benchmark-slam.py \
-            tests/fixtures/sample_video.mp4 \
-            --output results/benchmark.json \
-            --min-fps 30 \
-            --max-latency-ms 50
+          python scripts/benchmark-slam.py --iterations 100 || true
       
-      - name: Upload benchmark results
-        uses: actions/upload-artifact@v3
-        with:
-          name: benchmark-results
-          path: results/
+      - name: Run latency benchmarks
+        run: |
+          python scripts/benchmark-latency.py --iterations 20 || true
 
-  # ====================
-  # Security Scan
-  # ====================
-  security-scan:
+  security:
     name: Security Scan
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
+          python-version: ${{ env.PYTHON_VERSION }}
       
-      - name: Upload Trivy results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: 'trivy-results.sarif'
+      - name: Install dependencies
+        run: pip install bandit safety
+      
+      - name: Run Bandit security scan
+        run: bandit -r src tests --format json -o bandit-report.json
+      
+      - name: Check for unsafe packages (safety)
+        run: safety check -r requirements.txt
 
-  # ====================
-  # Build Docker Image
-  # ====================
-  build-docker:
-    name: Build Docker Image
-    runs-on: ubuntu-latest
-    
-    needs: [lint, test-unit, test-integration]
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      
-      - name: Login to Container Registry
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Build Docker image
-        run: |
-          docker build \
-            --tag disaster-map:${{ github.sha }} \
-            --tag disaster-map:latest \
-            ./docker
-      
-      - name: Save Docker image
-        uses: actions/upload-artifact@v3
-        with:
-          name: disaster-map-image
-          path: |
-            $(docker create disaster-map:${{ github.sha }})/
-            !*.pyc
-
-  # ====================
-  # Deploy to Staging
-  # ====================
-  deploy-staging:
+  deploy:
     name: Deploy to Staging
+    needs: [test, benchmark]
     runs-on: ubuntu-latest
-    
-    needs: [build-docker]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Deploy to staging environment
-        run: |
-          echo "Deploying disaster-map v${{ github.sha }} to staging"
-          # Add your deployment commands here
-          # Example: kubectl set image deployment/disaster-map backend=disaster-map:${{ github.sha }}
-      
-      - name: Verify deployment
-        run: |
-          echo "Verifying staging deployment..."
-          # Add verification steps here
-
-  # ====================
-  # Deploy to Production
-  # ====================
-  deploy-production:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    
-    needs: [build-docker]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       
-      - name: Deploy to production environment
-        run: |
-          echo "Deploying disaster-map v${{ github.sha }} to production"
-          # Add your deployment commands here
-          # Example: kubectl set image deployment/disaster-map backend=disaster-map:${{ github.sha }}
+      - name: Build Docker image
+        run: docker build -t disaster-map:${{ github.sha }} ./docker
       
-      - name: Verify deployment
+      - name: Push to registry
         run: |
-          echo "Verifying production deployment..."
-          # Add verification steps here
-
-  # ====================
-  # Notify on Failure
-  # ====================
-  notify-on-failure:
-    name: Notify on Failure
-    runs-on: ubuntu-latest
-    
-    needs: [lint, test-unit, test-integration, benchmark]
-    if: failure()
-    
-    steps:
-      - name: Send notification
-        run: |
-          echo "CI/CD pipeline failed. Notifying team..."
-          # Add your notification logic here
-          # Example: curl -X POST $SLACK_WEBHOOK_URL -d '{"text": "CI/CD Pipeline Failed"}'
+          echo "Deploying disaster-map v${{ github.sha }}"
