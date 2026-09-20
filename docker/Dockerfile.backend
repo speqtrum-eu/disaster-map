@@ -117,6 +117,10 @@ RUN chown -R appuser:appgroup /app \
 RUN mkdir -p /var/log/disaster-map \
     && chown appuser:appgroup /var/log/disaster-map
 
+# Entrypoint script for proper startup and logging
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # Switch to non-root user
 USER appuser
 
@@ -131,10 +135,6 @@ EXPOSE 8000
 ENV APP_HOME=/app \
     PYTHONPATH=${APP_HOME}/src:${PYTHONPATH} \
     UVICORN_CONFIG=uvicorn.config.prod.yaml
-
-# Entrypoint script for proper startup and logging
-COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ENTRYPOINT ["entrypoint.sh"]
 CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "${UVICORN_WORKERS}"]
