@@ -79,5 +79,8 @@ temp/
 *.tmp
 *.bak
 
-#Test Data
+# Test Data
 test_data/
+
+# Test Results
+results/
