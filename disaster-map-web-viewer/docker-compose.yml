@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  # Frontend service (nginx serving built React app)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "80:80"
+    networks:
+      - app-network
+    depends_on:
+      - backend
+
+  # Backend service (FastAPI)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

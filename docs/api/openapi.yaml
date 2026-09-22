@@ -1,0 +1,554 @@
+openapi: 3.0.3
+info:
+  title: Disaster Map API
+  description: |
+    Real-time 3D mapping and visualization API for disaster response operations.
+    
+    This API provides endpoints for:
+    - Video stream ingestion and frame processing
+    - SLAM pose estimation and tracking
+    - Point cloud map management
+    - Live data streaming via WebSocket
+    
+    **Base URL:** `https://api.disaster-map.local/v1`
+  version: 1.0.0
+  contact:
+    name: Disaster Map Team
+    email: support@disaster-map.local
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: https://api.disaster-map.local/v1
+    description: Production server
+  - url: http://localhost:8000/v1
+    description: Local development server
+
+tags:
+  - name: Frames
+    description: Video frame operations
+  - name: Poses
+    description: Pose estimation and tracking
+  - name: Maps
+    description: Point cloud map management
+  - name: Streaming
+    description: Real-time data streaming
+  - name: Health
+    description: System health checks
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns system health status and metrics
+      tags: [Health]
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+
+  /frames:
+    get:
+      summary: List video frames
+      description: |
+        Retrieve a list of processed video frames with their metadata.
+        
+        Supports pagination and filtering by timestamp range.
+      operationId: listFrames
+      tags: [Frames]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+          description: Maximum number of frames to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of frames to skip
+        - name: start_time
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter frames after this timestamp
+        - name: end_time
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter frames before this timestamp
+      responses:
+        '200':
+          description: List of video frames
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrameList'
+
+  /frames/{frame_id}:
+    get:
+      summary: Get frame details
+      description: Retrieve detailed information about a specific frame
+      operationId: getFrame
+      tags: [Frames]
+      parameters:
+        - name: frame_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier for the frame
+      responses:
+        '200':
+          description: Frame details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Frame'
+
+  /poses:
+    get:
+      summary: Get pose estimates
+      description: |
+        Retrieve pose estimation results for tracked frames.
+        
+        Returns camera position and orientation data.
+      operationId: listPoses
+      tags: [Poses]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+          description: Maximum number of poses to return
+        - name: frame_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by specific frame ID
+      responses:
+        '200':
+          description: List of pose estimates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoseList'
+
+  /poses/{pose_id}:
+    get:
+      summary: Get pose details
+      description: Retrieve detailed information about a specific pose estimate
+      operationId: getPose
+      tags: [Poses]
+      parameters:
+        - name: pose_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier for the pose
+      responses:
+        '200':
+          description: Pose details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pose'
+
+  /maps:
+    post:
+      summary: Upload point cloud map
+      description: |
+        Upload a new point cloud map for visualization.
+        
+        Supports PLY, LAS, and LAZ file formats.
+      operationId: uploadMap
+      tags: [Maps]
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '201':
+          description: Map uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MapUploadResponse'
+
+  /maps/{map_id}:
+    get:
+      summary: Get map details
+      description: Retrieve information about a specific point cloud map
+      operationId: getMap
+      tags: [Maps]
+      parameters:
+        - name: map_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier for the map
+      responses:
+        '200':
+          description: Map details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Map'
+
+  /stream/ws:
+    get:
+      summary: WebSocket connection for live data
+      description: |
+        Establish a WebSocket connection for real-time pose updates.
+        
+        **Authentication Required:** Include Bearer token in the `Authorization` header.
+      operationId: connectWebSocket
+      tags: [Streaming]
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+            format: bearer
+          description: JWT authentication token
+      responses:
+        '101':
+          description: WebSocket connection established
+        '401':
+          description: Unauthorized - invalid or missing token
+
+  /stream/pose:
+    post:
+      summary: Submit pose estimate
+      description: |
+        Submit a new pose estimate for processing.
+        
+        Used by external systems to provide ground truth data.
+      operationId: submitPose
+      tags: [Streaming]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PoseSubmission'
+      responses:
+        '201':
+          description: Pose submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoseSubmissionResponse'
+
+  /metrics:
+    get:
+      summary: Get system metrics
+      description: |
+        Retrieve real-time system performance metrics.
+        
+        Includes FPS, latency, memory usage, and active connections.
+      operationId: getMetrics
+      tags: [Health]
+      responses:
+        '200':
+          description: System metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Metrics'
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          example: healthy
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-09-21T10:30:00Z"
+        version:
+          type: string
+          example: 1.0.0
+
+    FrameList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/FrameSummary'
+        total:
+          type: integer
+          example: 5000
+        limit:
+          type: integer
+          example: 100
+        offset:
+          type: integer
+          example: 0
+
+    FrameSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        timestamp:
+          type: number
+          format: float
+          example: 1695328058.123
+        frame_number:
+          type: integer
+          example: 1234
+        width:
+          type: integer
+          example: 1920
+        height:
+          type: integer
+          example: 1080
+        has_pose:
+          type: boolean
+          example: true
+
+    Frame:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/FrameSummary/id'
+        timestamp:
+          $ref: '#/components/schemas/FrameSummary/timestamp'
+        frame_number:
+          $ref: '#/components/schemas/FrameSummary/frame_number'
+        metadata:
+          type: object
+          properties:
+            camera_id:
+              type: string
+              example: "camera_01"
+            exposure_ms:
+              type: number
+              example: 33.33
+            iso:
+              type: integer
+              example: 200
+
+    PoseList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PoseSummary'
+        total:
+          type: integer
+          example: 1500
+
+    PoseSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "660e8400-e29b-41d4-a716-446655440000"
+        frame_id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        timestamp:
+          type: number
+          format: float
+          example: 1695328058.123
+        confidence:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          example: 0.95
+
+    PoseListResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/PoseList/data'
+        total:
+          $ref: '#/components/schemas/PoseList/total'
+
+    Pose:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/PoseSummary/id'
+        frame_id:
+          $ref: '#/components/schemas/PoseSummary/frame_id'
+        timestamp:
+          $ref: '#/components/schemas/PoseSummary/timestamp'
+        position:
+          type: object
+          properties:
+            x:
+              type: number
+              example: 12.345
+            y:
+              type: number
+              example: -8.765
+            z:
+              type: number
+              example: 45.678
+        orientation:
+          type: object
+          properties:
+            qx:
+              type: number
+              example: 0.999
+            qy:
+              type: number
+              example: 0.012
+            qz:
+              type: number
+              example: -0.045
+            qw:
+              type: number
+              example: 0.987
+        confidence:
+          $ref: '#/components/schemas/PoseSummary/confidence'
+
+    PoseSubmission:
+      type: object
+      properties:
+        frame_id:
+          type: string
+          format: uuid
+          description: Frame ID to associate pose with
+        position:
+          type: object
+          properties:
+            x:
+              type: number
+            y:
+              type: number
+            z:
+              type: number
+        orientation:
+          type: object
+          properties:
+            qx:
+              type: number
+            qy:
+              type: number
+            qz:
+              type: number
+            qw:
+              type: number
+
+    PoseSubmissionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        pose_id:
+          type: string
+          format: uuid
+          description: ID of the submitted pose
+
+    MapUploadResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        map_id:
+          type: string
+          format: uuid
+          description: ID of the uploaded map
+        message:
+          type: string
+          example: "Map uploaded successfully"
+
+    Map:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Disaster Zone A"
+        upload_timestamp:
+          type: string
+          format: date-time
+        point_count:
+          type: integer
+          example: 150000
+        file_size_bytes:
+          type: integer
+          example: 45678901
+
+    Metrics:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        fps:
+          type: number
+          format: float
+          description: Current frames per second
+          example: 32.5
+        latency_ms:
+          type: number
+          format: float
+          description: Average end-to-end latency in milliseconds
+          example: 45.2
+        memory_mb:
+          type: integer
+          description: Memory usage in megabytes
+          example: 1024
+        active_connections:
+          type: integer
+          description: Number of active WebSocket connections
+          example: 3
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Invalid frame ID"
+        code:
+          type: string
+          example: "FRAME_NOT_FOUND"
+        details:
+          type: string
+          example: "Frame with ID 550e8400-e29b-41d4-a716-446655440000 not found"
+
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          $ref: '#/components/schemas/Error'

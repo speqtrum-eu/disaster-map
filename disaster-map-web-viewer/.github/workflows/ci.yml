@@ -1,0 +1,158 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.10'
+
+jobs:
+  # Frontend linting and type checking
+  frontend-lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+      
+      - name: Lint check
+        working-directory: ./frontend
+        run: npm run lint
+      
+      - name: Type checking
+        working-directory: ./frontend
+        run: npx tsc --noEmit
+
+  # Frontend build test
+  frontend-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+      
+      - name: Build application
+        working-directory: ./frontend
+        run: npm run build
+
+  # Backend linting and type checking
+  backend-lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install dependencies
+        working-directory: ./backend
+        run: pip install -r requirements.txt
+      
+      - name: Lint check (Black)
+        working-directory: ./backend
+        run: black --check src tests || true
+      
+      - name: Lint check (Flake8)
+        working-directory: ./backend
+        run: flake8 src tests || true
+
+  # Backend type checking
+  backend-typecheck:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install dependencies
+        working-directory: ./backend
+        run: pip install mypy
+      
+      - name: Type checking
+        working-directory: ./backend
+        run: mypy src
+
+  # Backend tests
+  backend-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install dependencies
+        working-directory: ./backend
+        run: pip install pytest pytest-cov
+      
+      - name: Run tests
+        working-directory: ./backend
+        run: pytest tests/ -v --cov=app --cov-report=xml
+
+  # Docker build test
+  docker-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Build frontend image
+        run: |
+          docker build -t disaster-map-frontend:test ./docker
+          
+      - name: Build backend image
+        run: |
+          docker build -t disaster-map-backend:test ./docker
+
+  # Deploy to production (main branch only)
+  deploy:
+    needs: [frontend-lint, frontend-build, backend-lint, backend-tests]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Deploy to production
+        run: |
+          echo "Deploying disaster-map-web-viewer v${{ github.sha }}"
+          # Add deployment commands here

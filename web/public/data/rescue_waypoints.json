@@ -1,0 +1,38 @@
+{
+  "scenario": "search_and_rescue",
+  "metadata": {
+    "generated_at": "2026-09-20T23:07:38.763544"
+  },
+  "waypoints": [
+    {
+      "name": "Start Point",
+      "position": [50.9934, 49.7235, 100.6477],
+      "action": "deploy",
+      "description": "Initial deployment location"
+    },
+    {
+      "name": "Search Zone A",
+      "position": [35, 45, 95],
+      "action": "scan",
+      "description": "Primary search area for survivors"
+    },
+    {
+      "name": "Search Zone B",
+      "position": [65, 75, 85],
+      "action": "scan",
+      "description": "Secondary search area"
+    },
+    {
+      "name": "Evacuation Route",
+      "position": [100, 30, 70],
+      "action": "mark_safe",
+      "description": "Designated evacuation path"
+    },
+    {
+      "name": "Rescue Point Alpha",
+      "position": [45, 20, 60],
+      "action": "deploy_team",
+      "description": "Team deployment point for rescue operations"
+    }
+  ]
+}

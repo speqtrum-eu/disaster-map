@@ -1,0 +1,7 @@
+# Prettier configuration for Python files
+# This file is kept for consistency but Python uses Black/Isort primarily
+
+# Note: For Python formatting, use:
+# - Black: black src/ tests/
+# - Isort: isort src/ tests/
+# - Flake8: flake8 src/ tests/

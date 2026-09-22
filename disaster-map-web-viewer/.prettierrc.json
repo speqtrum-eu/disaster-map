@@ -1,0 +1,55 @@
+{
+  "python": {
+    "max_line_length": 100,
+    "lineending": "auto",
+    "include": [
+      ".gitignore"
+    ],
+    "extend": ["pycodestyle"],
+    "exclude": [
+      ".bzr",
+      ".direnv",
+      ".eggs",
+      ".git",
+      ".hg",
+      ".mypy_cache",
+      ".nox",
+      ".pants.d",
+      ".ruff_cache",
+      ".svn",
+      ".tox",
+      ".venv",
+      "__pypackages__",
+      "_build",
+      "buck-out",
+      "build",
+      "dist",
+      "node_modules",
+      "venv"
+    ],
+    "extend_exclude": [
+      ".bzr",
+      ".direnv",
+      ".eggs",
+      ".git",
+      ".hg",
+      ".mypy_cache",
+      ".nox",
+      ".pants.d",
+      ".ruff_cache",
+      ".svn",
+      ".tox",
+      ".venv",
+      "__pypackages__",
+      "_build",
+      "buck-out",
+      "build",
+      "dist",
+      "node_modules",
+      "venv"
+    ],
+    "filename": [
+      "*.py"
+    ]
+  }
+}

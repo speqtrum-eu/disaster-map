@@ -1,0 +1,115 @@
+{
+  "root": true,
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "node": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:react/recommended",
+    "plugin:react-hooks/recommended",
+    "prettier"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaFeatures": {
+      "jsx": true
+    },
+    "ecmaVersion": "latest",
+    "sourceType": "module"
+  },
+  "plugins": [
+    "@typescript-eslint",
+    "react",
+    "react-hooks",
+    "import",
+    "no-console"
+  ],
+  "rules": {
+    // TypeScript Rules
+    "@typescript-eslint/explicit-function-return-type": ["warn", {"allowExpressions": true}],
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-unused-vars": ["error", {"argsIgnorePattern": "^_"}],
+    "@typescript-eslint/prefer-nullish-coalescing": "warn",
+    "@typescript-eslint/strict-boolean-expressions": "off",
+
+    // React Rules
+    "react/react-in-jsx-scope": "off",
+    "react/jsx-no-target-blank": "error",
+    "react/jsx-key": "error",
+    "react/jsx-no-useless-fragment": "error",
+    "react/no-unescaped-entities": "warn",
+
+    // React Hooks Rules
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": ["warn", {"additionalHooks": "use*"}],
+
+    // Import Rules
+    "import/order": [
+      "error",
+      {
+        "groups": [
+          "builtin",
+          "external",
+          "internal",
+          "parent",
+          "sibling",
+          "index"
+        ],
+        "newlines-between": "always",
+        "alphabetize": {"order": "asc", "caseInsensitive": true}
+      }
+    ],
+    "import/no-duplicates": "error",
+    "import/no-unresolved": "warn",
+
+    // Code Style Rules
+    "no-console": ["warn", {"allow": ["warn", "error"]}],
+    "no-debugger": "warn",
+    "no-constant-condition": "warn",
+    "no-empty-function": "warn",
+    "no-eval": "error",
+    "no-implied-eval": "error",
+    "no-new-wrappers": "warn",
+    "no-redeclare": "error",
+    "no-return-await": "warn",
+    "no-sequences": "warn",
+    "prefer-const": "error",
+
+    // Best Practices
+    "eqeqeq": ["error", "always"],
+    "guard-for-in": "warn",
+    "no-alert": "warn",
+    "no-caller": "error",
+    "no-continue": "warn",
+    "no-multi-str": "error",
+    "no-sparse-arrays": "error",
+    "no-throw-literal": "error",
+    "no-undef-init": "error",
+    "no-unmodified-loop-condition": "warn",
+    "no-unused-labels": "error",
+    "no-useless-call": "error",
+    "no-useless-concat": "warn",
+    "no-with": "error",
+
+    // Performance
+    "complexity": ["warn", {"max": 10}],
+    "max-depth": ["warn", {"max": 4}],
+    "max-lines-per-function": ["warn", {"max": 200, "skipBlankLines": true, "skipComments": true}],
+    "no-extra-boolean-cast": "error"
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    "dist/",
+    "build/",
+    ".next/",
+    "coverage/"
+  ],
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  }
+}

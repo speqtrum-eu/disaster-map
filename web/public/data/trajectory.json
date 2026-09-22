@@ -1,0 +1,151 @@
+{
+  "metadata": {
+    "video_path": "test_data/videos/mixkit-aerial-footage-of-historical-lithuanian-village-48396-hd-ready.mp4",
+    "algorithm": "orb_slam2",
+    "generated_at": "2026-09-20T23:07:38.751328",
+    "total_frames": 150,
+    "frame_interval_ms": 100
+  },
+  "poses": [
+    {
+      "frame": 0,
+      "timestamp": 0.0,
+      "position": [50.9934, 49.7235, 100.6477],
+      "orientation": {"roll": 0.17615149282040127, "pitch": -0.2117076687361668, "yaw": 0.3649500985631483},
+      "confidence": 0.9713
+    },
+    {
+      "frame": 1,
+      "timestamp": 0.0333,
+      "position": [50.1984, 53.6918, 100.5674],
+      "orientation": {"roll": 0.0765262807032524, "pitch": -0.17287199782070178, "yaw": 1.1424399624340646},
+      "confidence": 0.8757
+    },
+    {
+      "frame": 2,
+      "timestamp": 0.0667,
+      "position": [51.8173, 47.2401, 97.8751],
+      "orientation": {"roll": 0.07188562353795137, "pitch": -0.2506415560167212, "yaw": 1.8355989632476268},
+      "confidence": 0.9013
+    },
+    {
+      "frame": 3,
+      "timestamp": 0.1,
+      "position": [52.6285, 54.5313, 99.1742],
+      "orientation": {"roll": 0.1033764102343962, "pitch": -0.27123740931067286, "yaw": 3.7222505148331146},
+      "confidence": 0.8565
+    },
+    {
+      "frame": 4,
+      "timestamp": 0.1333,
+      "position": [50.3647, 52.8847, 98.5994],
+      "orientation": {"roll": 0.08541531251033617, "pitch": -0.23008533061146985, "yaw": 0.7667888440908461},
+      "confidence": 0.9193
+    },
+    {
+      "frame": 5,
+      "timestamp": 0.1667,
+      "position": [57.0379, 54.3118, 97.7792],
+      "orientation": {"roll": 0.11044317975023778, "pitch": -0.2979835061939888, "yaw": 3.435081994453742},
+      "confidence": 0.8759
+    },
+    {
+      "frame": 6,
+      "timestamp": 0.2,
+      "position": [55.4769, 53.5427, 98.6844],
+      "orientation": {"roll": 0.08494481522053557, "pitch": -0.2739260995183714, "yaw": 5.20711134101201},
+      "confidence": 0.8999
+    },
+    {
+      "frame": 7,
+      "timestamp": 0.2333,
+      "position": [53.227, 54.4206, 96.837],
+      "orientation": {"roll": 0.11620419846973976, "pitch": -0.21925411402081585, "yaw": 0.46841550900951673},
+      "confidence": 0.9882
+    },
+    {
+      "frame": 8,
+      "timestamp": 0.2667,
+      "position": [53.9795, 55.49, 99.431],
+      "orientation": {"roll": 0.14656400595580993, "pitch": -0.24196087616113193, "yaw": 5.423038764037894},
+      "confidence": 0.9373
+    },
+    {
+      "frame": 9,
+      "timestamp": 0.3,
+      "position": [55.3816, 53.8417, 98.0143],
+      "orientation": {"roll": 0.04468325129969859, "pitch": -0.2598103312040336, "yaw": 4.584250819761173},
+      "confidence": 0.9393
+    },
+    {
+      "frame": 10,
+      "timestamp": 0.3333,
+      "position": [56.5226, 57.3404, 98.3616],
+      "orientation": {"roll": 0.06774401226974379, "pitch": -0.18193021972457932, "yaw": 4.844129657408177},
+      "confidence": 0.9191
+    },
+    {
+      "frame": 11,
+      "timestamp": 0.3667,
+      "position": [60.4094, 50.6272, 98.6219],
+      "orientation": {"roll": 0.10435235341190857, "pitch": -0.21495036752329338, "yaw": 1.9751568815227998},
+      "confidence": 0.9212
+    },
+    {
+      "frame": 12,
+      "timestamp": 0.4,
+      "position": [57.5607, 57.1142, 99.0779],
+      "orientation": {"roll": 0.07408648908631764, "pitch": -0.2404246801446594, "yaw": 5.84146262931821},
+      "confidence": 0.9631
+    },
+    {
+      "frame": 13,
+      "timestamp": 0.4333,
+      "position": [57.6632, 58.7641, 97.7288],
+      "orientation": {"roll": 0.07351198981164807, "pitch": -0.1743366283443322, "yaw": 5.608113585103155},
+      "confidence": 0.9255
+    },
+    {
+      "frame": 14,
+      "timestamp": 0.4667,
+      "position": [57.9292, 56.8113, 96.8079],
+      "orientation": {"roll": 0.026824252593394077, "pitch": -0.1851939861467712, "yaw": 0.04368152440717204},
+      "confidence": 0.9215
+    },
+    {
+      "frame": 15,
+      "timestamp": 0.5,
+      "position": [60.5221, 55.1693, 96.5794],
+      "orientation": {"roll": 0.08286427417366153, "pitch": -0.24011386346108096, "yaw": 5.924476397620194},
+      "confidence": 0.8952
+    },
+    {
+      "frame": 16,
+      "timestamp": 0.5333,
+      "position": [64.439, 58.8825, 97.0576],
+      "orientation": {"roll": 0.09627770421169164, "pitch": -0.29593856076495206, "yaw": 1.789705609162274},
+      "confidence": 0.8552
+    },
+    {
+      "frame": 17,
+      "timestamp": 0.5667,
+      "position": [61.2803, 59.1871, 99.0632],
+      "orientation": {"roll": 0.09038195176094388, "pitch": -0.1849226328833194, "yaw": 0.9104013314092384},
+      "confidence": 0.9185
+    },
+    {
+      "frame": 18,
+      "timestamp": 0.6,
+      "position": [64.2856, 61.1039, 97.191],
+      "orientation": {"roll": 0.05453062726026306, "pitch": -0.12986028445319503, "yaw": 3.9805845703145866},
+      "confidence": 0.925
+    },
+    {
+      "frame": 19,
+      "timestamp": 0.6333,
+      "position": [59.863, 58.1523, 95.6337],
+      "orientation": {"roll": 0.10498256825438207, "pitch": -0.22517378270580998, "yaw": 4.257262442995941},
+      "confidence": 0.8523
+    }
+  ]
+}

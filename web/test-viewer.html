@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Disaster Map Viewer - Quick Test</title>
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  <style>
+    body { margin: 0; padding: 0; overflow: hidden; }
+    #viewerContainer { width: 100vw; height: 100vh; }
+    .info { 
+      position: absolute; top: 10px; left: 10px; 
+      background: rgba(0,0,0,0.7); color: white; 
+      padding: 15px; border-radius: 8px; font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div id="viewerContainer"></div>
+  <div class="info">
+    <h3>🚁 Disaster Map Viewer Test</h3>
+    <p><strong>Status:</strong> Initializing...</p>
+    <p><strong>FPS:</strong> <span id="fps">--</span></p>
+    <p><strong>Latency:</strong> <span id="latency">--</span> ms</p>
+  </div>
+
+  <script type="module">
+    import React from 'https://unpkg.com/react@18/umd/react.production.min.js';
+    import ReactDOM from 'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js';
+    
+    // Simple test viewer
+    const TestViewer = () => {
+      const containerRef = React.useRef(null);
+      const [fps, setFps] = React.useState(60);
+      
+      React.useEffect(() => {
+        const viewer = new Cesium.Viewer(containerRef.current, {
+          terrainProvider: undefined,
+          baseLayerPicker: false,
+          animation: false,
+          timeline: true,
+          geocoder: false,
+          homeButton: false,
+        });
+
+        // Add trajectory path
+        const positions = [
+          Cesium.Cartesian3.fromDegrees(50.9934, 49.7235, 100),
+          Cesium.Cartesian3.fromDegrees(50.1984, 53.6918, 100),
+          Cesium.Cartesian3.fromDegrees(51.8173, 47.2401, 98),
+        ];
+
+        const polyline = new Cesium.PolylineCollection();
+        polyline.add({
+          positions: positions,
+          material: new Cesium.PolylineMaterialProperty({
+            color: Cesium.Color.RED.withAlpha(0.7),
+            width: 5,
+          }),
+        });
+
+        viewer.scene.primitives.add(polyline);
+
+        // Add waypoints
+        const markers = new Cesium.MarkersCollection();
+        positions.forEach((pos, i) => {
+          const marker = new Cesium.Marker({
+            position: pos,
+            image: new Cesium.CesiumImageResource(
+              `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><circle cx="10" cy="10" r="8" fill="#FFD700"/></svg>`)}`
+            ),
+          });
+          markers.add(marker);
+        });
+
+        viewer.scene.primitives.add(markers);
+
+        // FPS monitoring
+        let frameCount = 0;
+        const fpsElement = document.getElementById('fps');
+        
+        const monitorFPS = () => {
+          frameCount++;
+          if (frameCount % 30 === 0) {
+            setFps(Math.round(frameCount * 1000 / (performance.now() - lastTime)));
+          }
+          requestAnimationFrame(monitorFPS);
+        };
+
+        const lastTime = performance.now();
+        monitorFPS();
+
+        return () => viewer.destroy();
+      }, []);
+
+      return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />;
+    };
+
+    ReactDOM.createRoot(document.body).render(<TestViewer />);
+  </script>
+</body>
+</html>

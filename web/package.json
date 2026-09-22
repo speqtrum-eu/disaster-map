@@ -1,0 +1,35 @@
+{
+  "name": "disaster-map-viewer",
+  "version": "1.0.0",
+  "description": "CesiumJS-based 3D viewer for disaster mapping with point cloud visualization and trajectory tracking",
+  "private": true,
+  "scripts": {
+    "start": "npx serve public -p 3000",
+    "build": "echo 'Build script placeholder'",
+    "test": "echo 'Test script placeholder'"
+  },
+  "dependencies": {
+    "@ciscera/three-tiles-explorer": "^1.2.0",
+    "cesium": "^1.114.0",
+    "ply-parser": "^1.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "three": "^0.159.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.0",
+    "@babel/preset-env": "^7.23.0",
+    "@babel/preset-react": "^7.23.0",
+    "serve": "^14.2.0"
+  },
+  "keywords": [
+    "cesiumjs",
+    "disaster-mapping",
+    "point-cloud",
+    "3d-visualization",
+    "trajectory-tracking",
+    "react"
+  ],
+  "author": "",
+  "license": "MIT"
+}
